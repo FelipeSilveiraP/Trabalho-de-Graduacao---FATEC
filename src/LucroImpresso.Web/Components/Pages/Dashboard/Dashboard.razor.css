@@ -1,0 +1,49 @@
+.dashboard-container {
+    padding: 3rem 2rem;
+    /* Matemática para não sobrar tela branca embaixo */
+    min-height: calc(100vh - 76px);
+}
+
+.tracking-wide {
+    letter-spacing: 1.5px;
+}
+
+/* Bordas coloridas para os cards específicos */
+.border-warning-cyber {
+    border: 1px solid rgba(255, 193, 7, 0.3) !important;
+    box-shadow: inset 0 0 15px rgba(255, 193, 7, 0.05);
+}
+
+.border-success-cyber {
+    border: 1px solid rgba(32, 201, 151, 0.3) !important;
+}
+
+.alert-item {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.alert-item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+/* Customização da Tabela do Bootstrap para Cyberpunk */
+.cyber-table {
+    --bs-table-bg: transparent;
+    --bs-table-color: #fff;
+}
+
+.cyber-table th {
+    border-bottom: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    padding-bottom: 1rem;
+}
+
+.cyber-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1rem 0.5rem;
+    vertical-align: middle;
+}

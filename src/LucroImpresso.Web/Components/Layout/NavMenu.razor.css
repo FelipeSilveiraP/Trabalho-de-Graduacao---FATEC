@@ -1,0 +1,230 @@
+.header-cyberpunk {
+    background-color: #08080b; /* Fundo mais escuro que o body */
+}
+
+.border-bottom-neon {
+    border-bottom: 1px solid #00e5ff;
+    box-shadow: 0 4px 15px rgba(0, 229, 255, 0.1);
+}
+
+.pi-logo {
+    font-family: 'Times New Roman', Times, serif;
+    font-style: italic;
+}
+
+.tracking-wide {
+    letter-spacing: 2px;
+}
+
+/* Links do Menu SpaceX/Cyberpunk */
+.nav-cyber {
+    color: #a0a0a0 !important;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-cyber:hover, .nav-cyber.active {
+    color: #00e5ff !important;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+    border-bottom: 2px solid #00e5ff;
+}
+
+/* --- BOTÃO HAMBÚRGUER ANIMADO --- */
+.custom-toggler {
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 25px;
+    padding: 0;
+    cursor: pointer;
+    z-index: 1050; /* Garante que fique acima do menu lateral */
+}
+
+.custom-toggler:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.custom-toggler .line {
+    width: 100%;
+    height: 3px;
+    background-color: #333;
+    border-radius: 10px;
+    transition: all 0.3s linear;
+    transform-origin: 1px;
+}
+
+/* Transformação para 'X' quando a classe 'open' é injetada pelo C# */
+.custom-toggler.open .line1 {
+    transform: rotate(45deg);
+}
+
+.custom-toggler.open .line2 {
+    opacity: 0;
+}
+
+.custom-toggler.open .line3 {
+    transform: rotate(-45deg);
+}
+
+
+/* --- MENU LATERAL MOBILE (Offcanvas customizado) --- */
+.mobile-side-menu {
+    position: fixed;
+    top: 0;
+    right: -300px; /* Começa escondido à direita */
+    width: 250px;
+    height: 100vh;
+    background-color: #ffffff;
+    z-index: 1040;
+    transition: right 0.3s ease-in-out;
+    padding-top: 70px; /* Espaço para o navbar acima */
+}
+
+.mobile-side-menu.active {
+    right: 0; /* Desliza para a tela */
+}
+
+/* --- OVERLAY ESCURO --- */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1030;
+}
+
+/* Oculta o botão mobile e painel lateral em telas grandes (Desktop) */
+@media (min-width: 992px) {
+    .custom-toggler {
+        display: none;
+    }
+    .mobile-side-menu, .menu-overlay {
+        display: none !important;
+    }
+}
+
+.pi-logo {
+        font-family: 'Times New Roman', Times, serif; 
+        font-style: italic;
+}
+
+::deep .nav-link.nav-cyber {
+        color: #888899 !important; 
+        font-size: 0.9rem;
+        letter-spacing: 1.5px;
+        font-weight: 600;
+        padding-bottom: 0.5rem;
+        position: relative; 
+        text-decoration: none;
+        transition: color 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
+        border-bottom: none !important; 
+}
+
+::deep .nav-link.nav-cyber::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 3px;
+        background-color: #00e5ff;
+        bottom: 0;
+        left: 0;
+        transform-origin: right; 
+        transform: scaleX(0); 
+        transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
+        box-shadow: 0 0 8px rgba(0, 229, 255, 0.8); 
+    }
+
+::deep .nav-link.nav-cyber:hover::before, .nav-link.nav-cyber.active::before {
+        transform-origin: left; 
+        transform: scaleX(1); 
+    }
+
+::deep .nav-link.nav-cyber:hover, .nav-link.nav-cyber.active {
+        color: #00e5ff !important; 
+        text-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
+    }
+
+    .custom-toggler {
+        border-color: rgba(0, 229, 255, 0.5) !important;
+        box-shadow: none !important;
+    }
+    
+    .custom-toggler:focus {
+        box-shadow: 0 0 10px rgba(0, 229, 255, 0.5) !important;
+    }
+
+@media (max-width: 767.98px) {
+    .custom-mobile-menu {
+        background-color: rgba(10, 10, 16, 0.98); 
+        border-radius: 8px;
+        margin-top: 1rem;
+        border: 1px solid rgba(0, 229, 255, 0.3); 
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    }
+       
+    .nav-link.nav-cyber::before {
+        width: 50%; 
+        left: 25%; 
+    }
+}
+
+/* =========================================
+   ANIMAÇÃO DO HAMBURGER PARA 'X'
+   ========================================= */
+.animated-icon {
+    width: 28px;
+    height: 20px;
+    position: relative;
+    margin: 0;
+    transform: rotate(0deg);
+    transition: .5s ease-in-out;
+    cursor: pointer;
+}
+
+.animated-icon span {
+    display: block;
+    position: absolute;
+    height: 3px;
+    width: 100%;
+    /* Cor Neon herdada do sistema global */
+    background-color: #00e5ff; 
+    border-radius: 3px;
+    opacity: 1;
+    left: 0;
+    transform: rotate(0deg);
+    transition: .25s ease-in-out;
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.8);
+}
+
+/* Posições iniciais das 3 linhas (Hamburger) */
+.animated-icon span:nth-child(1) { top: 0px; }
+.animated-icon span:nth-child(2) { top: 8px; }
+.animated-icon span:nth-child(3) { top: 16px; }
+
+/* O Bootstrap muda o aria-expanded para 'true' sozinho. Nós capturamos isso! */
+/* Linha de cima desce e gira 135 graus */
+.navbar-toggler[aria-expanded="true"] .animated-icon span:nth-child(1) {
+    top: 8px;
+    transform: rotate(135deg);
+}
+
+/* Linha do meio evapora e desliza para a esquerda */
+.navbar-toggler[aria-expanded="true"] .animated-icon span:nth-child(2) {
+    opacity: 0;
+    left: -20px; 
+}
+
+/* Linha de baixo sobe e gira -135 graus */
+.navbar-toggler[aria-expanded="true"] .animated-icon span:nth-child(3) {
+    top: 8px;
+    transform: rotate(-135deg);
+}

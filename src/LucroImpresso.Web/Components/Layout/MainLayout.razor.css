@@ -1,0 +1,17 @@
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.header-cyber {
+    background-color: #08080b; /* Preto absoluto pro menu */
+    border-bottom: 3px solid #00e5ff; /* Linha Cyan da SpaceX */
+    box-shadow: 0 7px 15px rgba(0, 229, 255, 0.15);
+    width: 100%;
+    z-index: 1000;
+}
+
+main {
+    flex: 1;
+}

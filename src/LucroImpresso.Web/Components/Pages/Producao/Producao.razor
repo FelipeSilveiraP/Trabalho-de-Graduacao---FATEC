@@ -1,0 +1,300 @@
+@page "/producao"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using LucroImpresso.Web.Models
+@using LucroImpresso.Web.Interfaces
+@inject IOrcamentoRepository OrcamentoRepo
+@inject IMaterialRepository MaterialRepo
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>LucroImpresso | Linha de Produção</PageTitle>
+
+<div class="page-container" style="max-width: 1400px; margin: 0 auto; padding-top: 2rem;">
+    <header class="mb-5">
+        <h2 class="text-white fw-bold">LINHA DE <span class="neon-text">PRODUÇÃO</span></h2>
+        <p class="text-secondary">MOTOR DO SISTEMA: Gerencie o status da impressão e controle as baixas de estoque reais.</p>
+    </header>
+
+    @if (!string.IsNullOrEmpty(mensagemFeedback))
+    {
+        <div class="alert alert-info bg-dark border-info text-info mb-4 shadow-sm" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i> @mensagemFeedback
+        </div>
+    }
+
+    <!-- BARRA DE FERRAMENTAS: BUSCA E FILTROS -->
+    <div class="card cyber-card-no-hover p-3 mb-4" style="background-color: var(--secondary-bg); border-color: #2a2a35;">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6 position-relative">
+                <i class="bi bi-search position-absolute text-secondary" style="top: 50%; transform: translateY(-50%); left: 15px;"></i>
+                <input type="text" class="form-control cyber-input custom-placeholder ps-5" placeholder="Pesquisar por Cliente ou Projeto..." @bind="termoBusca" @bind:event="oninput" />
+            </div>
+            <div class="col-md-4">
+                <select class="form-select cyber-input text-secondary" @bind="filtroStatus">
+                    <option value="Todos">Todos os Status</option>
+                    <option value="Pendente">Pendentes</option>
+                    <option value="EmImpressao">Em Impressão</option>
+                    <option value="Concluido">Concluídos</option>
+                    <option value="Falha">Falhas</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <button class="btn btn-neon w-100 py-2" @onclick='() => Nav.NavigateTo("/orcamento/novo")'>+ NOVO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELA DE PRODUÇÃO / MASTER LIST -->
+    <div class="card cyber-card-no-hover p-4 table-responsive" style="background-color: var(--secondary-bg); border-color: #2a2a35;">
+        @if (carregando)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-neon" role="status"></div>
+                <p class="text-secondary mt-2">Carregando linha de produção...</p>
+            </div>
+        }
+        else
+        {
+            <table class="table table-dark table-striped table-hover cyber-table mb-0">
+            <thead>
+                <tr>
+                    <th>DATA</th>
+                    <th>CLIENTE / PROJETO</th>
+                    <th>MATERIAL</th>
+                    <th>PESO (EST.)</th>
+                    <th>TEMPO</th>
+                    <th>ENERGIA</th>
+                    <th>MARGEM</th>
+                    <th>PREÇO</th>
+                    <th>STL</th>
+                    <th>STATUS</th>
+                    <th class="text-center" style="min-width: 250px;">AÇÕES DE PRODUÇÃO</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (FilaFiltrada == null)
+                {
+                    <tr><td colspan="11" class="text-center text-secondary">Aguarde, carregando linha de produção...</td></tr>
+                }
+                else if (!FilaFiltrada.Any())
+                {
+                    <tr><td colspan="11" class="text-center text-secondary">Nenhum registro encontrado com os filtros atuais.</td></tr>
+                }
+                else
+                {
+                    @foreach (var p in FilaFiltrada)
+                    {
+                        <tr>
+                            <td class="align-middle">@p.DataCriacao.ToString("dd/MM/yyyy")</td>
+                            <td class="align-middle">
+                                <strong class="text-white d-block">@p.NomeCliente</strong>
+                                <small class="text-secondary">@p.NomeProjeto</small>
+                            </td>
+                            <td class="align-middle">@(p.Material?.Nome ?? "N/A")</td>
+                            <td class="align-middle fw-bold" style="color: #ffc107;">@p.PesoGramas.ToString("N2") g</td>
+                            <td class="align-middle">@p.TempoHoras h</td>
+                            <td class="align-middle">
+                                <small class="d-block text-secondary">@p.ConsumoMaquinaW.ToString("N0") W</small>
+                                <span>@p.CustoKwh.ToString("C2")/kWh</span>
+                            </td>
+                            <td class="align-middle">@p.MargemLucroPercentual.ToString("N2")%</td>
+                            <td class="align-middle fw-bold neon-text">@p.CustoFinal.ToString("C2")</td>
+                            <td class="align-middle">
+                                @if (!string.IsNullOrEmpty(p.LinkArquivoStl))
+                                {
+                                    <a href="@p.LinkArquivoStl" target="_blank" class="btn btn-sm btn-outline-secondary">Ver STL</a>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary small">Nenhum</span>
+                                }
+                            </td>
+                            <td class="align-middle">
+                                @if(p.Status == StatusOrcamento.Pendente)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> PENDENTE</span>
+                                }
+                                else if(p.Status == StatusOrcamento.EmImpressao)
+                                {
+                                    <span class="badge bg-info text-dark"><i class="bi bi-printer-fill me-1"></i> IMPRIMINDO</span>
+                                }
+                                else if(p.Status == StatusOrcamento.Concluido)
+                                {
+                                    <span class="badge bg-primary"><i class="bi bi-check-lg me-1"></i> CONCLUÍDO</span>
+                                }
+                                else if(p.Status == StatusOrcamento.Falha)
+                                {
+                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i> FALHA</span>
+                                }
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="d-flex flex-column gap-2 align-items-center">
+                                    <div class="d-flex gap-2 w-100 flex-wrap justify-content-center">
+                                        @if (p.Status != StatusOrcamento.Concluido)
+                                        {
+                                            <button class="btn btn-outline-warning btn-sm fw-bold flex-grow-1" @onclick='() => Nav.NavigateTo($"/orcamento/editar/{p.Id}")'>
+                                                <span class="me-1">✏️</span>Editar
+                                            </button>
+                                        }
+                                        <button class="btn btn-outline-danger btn-sm fw-bold flex-grow-1" @onclick="() => ExcluirOrcamento(p.Id)">
+                                            <span class="me-1">🗑️</span>Excluir
+                                        </button>
+                                    </div>
+                                    
+                                    @if (p.Status == StatusOrcamento.Pendente)
+                                    {
+                                        <button class="btn btn-primary btn-sm fw-bold w-100 mb-1" @onclick="() => MudarStatus(p, StatusOrcamento.EmImpressao)">
+                                            <span class="me-1">▶️</span>Iniciar
+                                        </button>
+                                    }
+                                    @if (p.Status == StatusOrcamento.EmImpressao || p.Status == StatusOrcamento.Pendente)
+                                    {
+                                        <button class="btn btn-success btn-sm fw-bold w-100 mb-1" @onclick="() => FinalizarProducao(p, true)">
+                                            <span class="me-1">✔️</span>Concluir
+                                        </button>
+                                        <button class="btn btn-danger btn-sm fw-bold w-100" @onclick="() => FinalizarProducao(p, false)">
+                                            <span class="me-1">❌</span>Falha
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<style>
+    .custom-placeholder::placeholder { 
+        color: #aaaaaa !important; 
+        opacity: 1 !important; 
+    }
+    .cyber-card-no-hover:hover {
+        border-color: #2a2a35 !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    ::deep .table-dark {
+        background-color: transparent !important;
+    }
+    ::deep .table-dark th {
+        background-color: #121218 !important;
+        color: #8c8c9e !important;
+        border-bottom: 2px solid #2a2a35;
+    }
+    ::deep .table-striped > tbody > tr:nth-of-type(odd) > * {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+    ::deep .table-hover > tbody > tr:hover > * {
+        background-color: rgba(0, 229, 255, 0.1);
+        color: var(--text-white);
+    }
+    ::deep .table-dark td {
+        border-color: #2a2a35;
+    }
+</style>
+
+@code {
+    private List<Orcamento> todosOrcamentos = new();
+    private string termoBusca = "";
+    private string filtroStatus = "Todos";
+    private string? mensagemFeedback;
+    private bool carregando = false;
+
+    private IEnumerable<Orcamento> FilaFiltrada
+    {
+        get
+        {
+            var query = todosOrcamentos.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(termoBusca))
+            {
+                query = query.Where(o => 
+                    (o.NomeCliente != null && o.NomeCliente.Contains(termoBusca, StringComparison.OrdinalIgnoreCase)) ||
+                    (o.NomeProjeto != null && o.NomeProjeto.Contains(termoBusca, StringComparison.OrdinalIgnoreCase))
+                );
+            }
+
+            if (filtroStatus != "Todos")
+            {
+                if (Enum.TryParse<StatusOrcamento>(filtroStatus, out var statusParseado))
+                {
+                    query = query.Where(o => o.Status == statusParseado);
+                }
+            }
+
+            return query;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        carregando = true;
+        try 
+        {
+            await CarregarFila();
+        }
+        finally 
+        {
+            carregando = false;
+        }
+    }
+
+    private async Task CarregarFila()
+    {
+        var dbOrcamentos = await OrcamentoRepo.GetAllAsync();
+        todosOrcamentos = dbOrcamentos.OrderByDescending(o => o.DataCriacao).ToList();
+    }
+
+    private async Task ExcluirOrcamento(int id)
+    {
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "Você deseja realmente deletar esse registro permanentemente?");
+        if (confirmado)
+        {
+            await OrcamentoRepo.DeleteAsync(id);
+            await CarregarFila();
+        }
+    }
+
+    private async Task MudarStatus(Orcamento p, StatusOrcamento novoStatus)
+    {
+        p.Status = novoStatus;
+        await OrcamentoRepo.UpdateAsync(p);
+        await CarregarFila();
+    }
+
+    private async Task FinalizarProducao(Orcamento p, bool sucesso)
+    {
+        mensagemFeedback = null;
+        
+        string msgConfirmacao = sucesso 
+            ? $"Você quer realmente Concluir aquela peça ({p.NomeProjeto})? Após isso a edição não ficará mais disponível. O estoque {p.Material?.Nome} sofrerá baixa de {p.PesoGramas.ToString("N2")}g."
+            : $"Registrar falha em '{p.NomeProjeto}'? A perda de {p.PesoGramas.ToString("N2")}g será descontada do material {p.Material?.Nome}.";
+
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", msgConfirmacao);
+        if (!confirmado) return;
+
+        // RN003: BAIXA DE ESTOQUE
+        if (p.Material != null)
+        {
+            p.Material.SaldoGramas -= (decimal)p.PesoGramas;
+            if (p.Material.SaldoGramas < 0) p.Material.SaldoGramas = 0;
+            await MaterialRepo.UpdateAsync(p.Material);
+        }
+
+        p.Status = sucesso ? StatusOrcamento.Concluido : StatusOrcamento.Falha;
+        await OrcamentoRepo.UpdateAsync(p);
+
+        mensagemFeedback = sucesso 
+            ? $"Impressão concluída. {p.PesoGramas.ToString("N2")}g debitadas do estoque com sucesso!" 
+            : $"Falha computada. Perda de {p.PesoGramas.ToString("N2")}g registrada no estoque.";
+
+        await CarregarFila();
+    }
+}

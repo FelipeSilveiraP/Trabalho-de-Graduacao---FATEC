@@ -1,0 +1,301 @@
+@page "/maquinas"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using LucroImpresso.Web.Models
+@using LucroImpresso.Web.Interfaces
+@inject IMaquinaRepository MaquinaRepo
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>LucroImpresso | Máquinas</PageTitle>
+
+<div class="page-container" style="max-width: 1200px; margin: 0 auto; padding-top: 2rem;">
+    <header class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="text-white fw-bold mb-0">GESTÃO DE <span class="neon-text">MÁQUINAS</span></h2>
+            <p class="text-secondary fs-6 mt-1">Gerenciamento do seu parque de impressoras e custos energéticos.</p>
+        </div>
+    </header>
+
+    @if (erroCarregamento)
+    {
+        <div class="alert alert-danger bg-dark text-danger border-danger mb-4">
+            Falha na conexão com o banco de dados. Verifique o serviço SQL.
+        </div>
+    }
+
+    <!-- Topo: Master-Detail Form -->
+    <div class="card cyber-card-no-hover p-4 mb-4" style="background-color: var(--secondary-bg); border-color: #2a2a35;">
+        <h5 class="text-white mb-3">@(modoEdicao ? "Editar Máquina" : "Cadastrar Nova Máquina")</h5>
+        
+        <EditForm Model="@formularioMaquina" OnValidSubmit="SalvarMaquina" FormName="formMaquina">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger small mb-3" />
+            
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small">Nome da Máquina</label>
+                    <InputText @bind-Value="formularioMaquina.Nome" class="form-control cyber-input custom-placeholder" placeholder="Ex: Bambu Lab P1S" maxlength="100" />
+                    <ValidationMessage For="@(() => formularioMaquina.Nome)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small">Potência</label>
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control cyber-input custom-placeholder" 
+                               placeholder="Ex: 350" 
+                               oninput="window.masks.weightUnit(this)"
+                               @onchange="UpdatePotencia"
+                               value="@potenciaFormatted"
+                               maxlength="7" />
+                        <span class="input-group-text bg-dark text-secondary border-secondary">W</span>
+                    </div>
+                    <ValidationMessage For="@(() => formularioMaquina.ConsumoWatts)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small">Custo kWh</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-secondary border-secondary">R$</span>
+                        <input type="text" 
+                               class="form-control cyber-input custom-placeholder" 
+                               placeholder="0,00" 
+                               oninput="window.masks.money(this)"
+                               @onchange="UpdateKwh"
+                               value="@kwhFormatted"
+                               maxlength="10" />
+                    </div>
+                    <ValidationMessage For="@(() => formularioMaquina.CustoKwh)" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-neon w-100 py-2" disabled="@carregando">
+                        @if (carregando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>AGUARDE...</span>
+                        }
+                        else
+                        {
+                            @((modoEdicao ? "ATUALIZAR" : "+ CADASTRAR"))
+                        }
+                    </button>
+                </div>
+            </div>
+            @if (modoEdicao)
+            {
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="button" class="btn btn-outline-danger py-2 px-4 fw-bold" @onclick="CancelarEdicao" style="border-width: 2px;">
+                        ✕ VOLTAR
+                    </button>
+                </div>
+            }
+        </EditForm>
+    </div>
+
+    <!-- Base: Tabela -->
+    <div class="card cyber-card-no-hover p-4 table-responsive" style="background-color: var(--secondary-bg); border-color: #2a2a35;">
+        @if (carregando && !maquinas.Any())
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-info" role="status"></div>
+                <p class="text-secondary mt-2">Sincronizando banco de dados...</p>
+            </div>
+        }
+        else
+        {
+            <table class="table table-dark table-striped table-hover cyber-table mb-0">
+            <thead>
+                <tr>
+                    <th>DATA</th>
+                    <th>NOME DA MÁQUINA</th>
+                    <th>POTÊNCIA (WATTS)</th>
+                    <th>CUSTO (KWH)</th>
+                    <th class="text-center">AÇÕES</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (maquinas == null)
+                {
+                    <tr><td colspan="5" class="text-center text-secondary">Carregando o sistema...</td></tr>
+                }
+                else if (!maquinas.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-secondary">Nenhuma máquina cadastrada no momento.</td></tr>
+                }
+                else
+                {
+                    @foreach (var maq in maquinas)
+                    {
+                        <tr>
+                            <td class="align-middle">@maq.DataCadastro.ToString("dd/MM/yyyy")</td>
+                            <td class="text-white fw-bold align-middle">@maq.Nome</td>
+                            <td class="align-middle" style="color: #ffc107;">@maq.ConsumoWatts.ToString("N0") W</td>
+                            <td class="align-middle"><strong class="neon-text">@maq.CustoKwh.ToString("C2")</strong></td>
+                            <td class="text-center align-middle">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn btn-outline-warning btn-sm fw-bold" @onclick="() => EditarMaquina(maq)">
+                                        <span class="me-1">✏️</span>Editar
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm fw-bold" @onclick="() => ExcluirMaquina(maq.Id)">
+                                        <span class="me-1">🗑️</span>Excluir
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<style>
+    .custom-placeholder::placeholder { 
+        color: #aaaaaa !important; 
+        opacity: 1 !important; 
+    }
+    
+    .cyber-card-no-hover:hover {
+        border-color: #2a2a35 !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    ::deep .table-dark {
+        background-color: transparent !important;
+    }
+    ::deep .table-dark th {
+        background-color: #121218 !important;
+        color: #8c8c9e !important;
+        border-bottom: 2px solid #2a2a35;
+    }
+    ::deep .table-striped > tbody > tr:nth-of-type(odd) > * {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+    ::deep .table-hover > tbody > tr:hover > * {
+        background-color: rgba(0, 229, 255, 0.1);
+        color: var(--text-white);
+    }
+    ::deep .table-dark td {
+        border-color: #2a2a35;
+    }
+</style>
+
+@code {
+    private List<Maquina> maquinas = new();
+    private Maquina formularioMaquina = new();
+    private bool erroCarregamento = false;
+    private bool modoEdicao = false;
+    private bool carregando = false;
+
+    private string potenciaFormatted = "";
+    private string kwhFormatted = "";
+
+    private void UpdatePotencia(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString() ?? "";
+        potenciaFormatted = val;
+        var clean = val.Replace(".", "").Replace(",", ".");
+        if (decimal.TryParse(clean, System.Globalization.CultureInfo.InvariantCulture, out decimal res))
+            formularioMaquina.ConsumoWatts = Math.Max(0, res);
+    }
+
+    private void UpdateKwh(ChangeEventArgs e)
+    {
+        var val = e.Value?.ToString() ?? "";
+        kwhFormatted = val;
+        var clean = val.Replace(".", "").Replace(",", ".").Trim();
+        if (decimal.TryParse(clean, System.Globalization.CultureInfo.InvariantCulture, out decimal res))
+            formularioMaquina.CustoKwh = Math.Max(0, res);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        carregando = true;
+        try 
+        {
+            await CarregarMaquinas();
+        }
+        catch (Exception)
+        {
+            erroCarregamento = true;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private async Task SalvarMaquina()
+    {
+        try 
+        {
+            carregando = true;
+            if (modoEdicao && formularioMaquina.Id > 0)
+            {
+                await MaquinaRepo.UpdateAsync(formularioMaquina);
+            }
+            else
+            {
+                formularioMaquina.DataCadastro = DateTime.Now;
+                await MaquinaRepo.AddAsync(formularioMaquina);
+            }
+            
+            formularioMaquina = new Maquina(); 
+            modoEdicao = false;
+            potenciaFormatted = "";
+            kwhFormatted = "";
+            await CarregarMaquinas();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao salvar máquina: {ex.Message}");
+            erroCarregamento = true;
+        }
+        finally 
+        {
+            carregando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void EditarMaquina(Maquina maq)
+    {
+        formularioMaquina = new Maquina
+        {
+            Id = maq.Id,
+            Nome = maq.Nome,
+            ConsumoWatts = maq.ConsumoWatts,
+            CustoKwh = maq.CustoKwh,
+            DataCadastro = maq.DataCadastro
+        };
+        potenciaFormatted = maq.ConsumoWatts.ToString("N0");
+        kwhFormatted = maq.CustoKwh.ToString("C2");
+        modoEdicao = true;
+    }
+
+    private void CancelarEdicao()
+    {
+        formularioMaquina = new Maquina();
+        potenciaFormatted = "";
+        kwhFormatted = "";
+        modoEdicao = false;
+    }
+
+    private async Task ExcluirMaquina(int id)
+    {
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "Você deseja realmente deletar esse registro?");
+        if (confirmado)
+        {
+            await MaquinaRepo.DeleteAsync(id);
+            await CarregarMaquinas();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CarregarMaquinas()
+    {
+        maquinas = await MaquinaRepo.GetAllAsync();
+        maquinas = maquinas.OrderByDescending(m => m.DataCadastro).ToList();
+    }
+}

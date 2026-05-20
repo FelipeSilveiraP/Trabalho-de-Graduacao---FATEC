@@ -1,0 +1,14 @@
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        // PROTEÇÃO ANTI-LOOP: Só redireciona se NÃO estiver já em /login
+        var uriAtual = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLower();
+        
+        if (!uriAtual.StartsWith("login"))
+        {
+            NavigationManager.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

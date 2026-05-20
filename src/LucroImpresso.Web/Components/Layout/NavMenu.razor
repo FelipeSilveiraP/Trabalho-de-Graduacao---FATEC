@@ -1,0 +1,73 @@
+@inject NavigationManager Nav
+
+<nav class="navbar navbar-expand-lg navbar-dark px-3 w-100" style="z-index: 1050;">
+    <div class="container-fluid">
+        
+        <AuthorizeView>
+            <Authorized>
+                <a class="navbar-brand d-flex align-items-center" href="dashboard" data-enhance-nav="false">
+                    <span class="pi-logo neon-text fs-1 me-2">π</span>
+                    <span class="neon-text fw-bold fs-3">Lucro</span><span class="text-light fs-3">Impresso</span>
+                </a>
+            </Authorized>
+            <NotAuthorized>
+                <a class="navbar-brand d-flex align-items-center" href="/" data-enhance-nav="false">
+                    <span class="pi-logo neon-text fs-1 me-2">π</span>
+                    <span class="neon-text fw-bold fs-3">Lucro</span><span class="text-light fs-3">Impresso</span>
+                </a>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <button class="navbar-toggler custom-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#menuCyber" aria-controls="menuCyber" aria-expanded="false" aria-label="Toggle navigation">
+            <div class="animated-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </button>
+
+        <div class="collapse navbar-collapse custom-mobile-menu" id="menuCyber">
+            <AuthorizeView>
+                <Authorized>
+                    <ul id="abas-sistema" class="navbar-nav mx-auto mb-2 mb-lg-0 gap-4 text-center mt-3 mt-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link nav-cyber" href="dashboard" data-enhance-nav="false" onclick="closeMenuMobile()">DASHBOARD</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-cyber" href="maquinas" data-enhance-nav="false" onclick="closeMenuMobile()">MÁQUINAS</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-cyber" href="material" data-enhance-nav="false" onclick="closeMenuMobile()">MATERIAL</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-cyber" href="producao" data-enhance-nav="false" onclick="closeMenuMobile()">PRODUÇÃO</a>
+                        </li>
+                    </ul>
+                </Authorized>
+            </AuthorizeView>
+
+            <div class="d-flex justify-content-center ms-lg-auto mt-4 mt-lg-0 pb-3 pb-lg-0">
+                <AuthorizeView>
+                    <Authorized>
+                        <a class="nav-link nav-cyber d-flex align-items-center text-decoration-none" href="/auth/logout" data-enhance-nav="false" onclick="closeMenuMobile()">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+                                <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+                            </svg>
+                            <span>Sair</span>
+                        </a>
+                    </Authorized>
+                    <NotAuthorized>
+                         <a class="nav-link nav-cyber d-flex align-items-center text-decoration-none" href="login" data-enhance-nav="false" onclick="closeMenuMobile()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                                <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                                <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+                            </svg>
+                            <span>Entrar</span>
+                        </a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </div>
+</nav>

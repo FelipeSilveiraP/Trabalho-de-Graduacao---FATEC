@@ -1,0 +1,363 @@
+@page "/orcamento/novo"
+@page "/orcamento/editar/{Id:int}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using LucroImpresso.Web.Models
+@using LucroImpresso.Web.Interfaces
+@inject IOrcamentoRepository OrcamentoRepo
+@inject IMaterialRepository MaterialRepo
+@inject IMaquinaRepository MaquinaRepo
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>LucroImpresso | Formulario de Orçamento</PageTitle>
+
+<div class="page-container" style="max-width: 1000px; margin: 0 auto; padding-top: 2rem;">
+    <header class="mb-5">
+        <h2 class="text-white fw-bold">GERENCIAR <span class="neon-text">ORÇAMENTOS</span></h2>
+        <p class="text-secondary">Definição do escopo comercial do cliente. Nenhuma baixa de estoque ocorre aqui.</p>
+    </header>
+
+    @if (!string.IsNullOrEmpty(alertaEstoque))
+    {
+        <div class="alert alert-danger border-danger bg-dark text-danger mb-4 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @alertaEstoque
+        </div>
+    }
+
+    <!-- TOPO: Formulário Master -->
+    <div class="card cyber-card-no-hover p-4 mb-5" style="background-color: var(--secondary-bg); border-color: #2a2a35;">
+        <h5 class="text-white mb-3">@(Id.HasValue ? "Editar Orçamento" : "Novo Orçamento")</h5>
+
+        <EditForm Model="@orcamento" OnValidSubmit="HandleSubmit" FormName="formOrcamento">
+            <DataAnnotationsValidator />
+            
+            <div class="row g-4">
+                <!-- Cliente e Projeto -->
+                <div class="col-md-6">
+                    <label class="form-label text-white">Nome do Cliente</label>
+                    <InputText @bind-Value="orcamento.NomeCliente" class="form-control cyber-input custom-placeholder" placeholder="Ex: João Silva" maxlength="100" />
+                    <ValidationMessage For="@(() => orcamento.NomeCliente)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-white">Telefone</label>
+                    <input @ref="telefoneInputRef"
+                           type="text"
+                           class="form-control cyber-input custom-placeholder"
+                           placeholder="(00) 00000 - 0000"
+                           oninput="window.masks.phone(event)"
+                           maxlength="17" />
+                    <ValidationMessage For="@(() => orcamento.TelefoneCliente)" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label text-white">Nome do Projeto/Peça</label>
+                    <InputText @bind-Value="orcamento.NomeProjeto" class="form-control cyber-input custom-placeholder" placeholder="Ex: Suporte Headset" maxlength="100" />
+                    <ValidationMessage For="@(() => orcamento.NomeProjeto)" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label text-white">Link STL (Opcional)</label>
+                    <InputText @bind-Value="orcamento.LinkArquivoStl" class="form-control cyber-input custom-placeholder" placeholder="https://..." maxlength="2000" />
+                    <ValidationMessage For="@(() => orcamento.LinkArquivoStl)" />
+                </div>
+
+                <div class="col-md-5">
+                    <label class="form-label text-white">Máquina de Produção</label>
+                    <select class="form-select cyber-input text-secondary" value="@orcamento.MaquinaId" @onchange="OnMaquinaChanged" required>
+                        <option value="">Selecione uma máquina</option>
+                        @foreach (var maq in maquinas)
+                        {
+                            <option value="@maq.Id">@maq.Nome (@maq.ConsumoWatts.ToString("N0") W | R$ @maq.CustoKwh.ToString("N2") / kWh)</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Dados Técnicos -->
+                <div class="col-md-4">
+                    <label class="form-label text-white">Material Escolhido</label>
+                    <InputSelect @bind-Value="orcamento.MaterialId" class="form-select cyber-input text-secondary">
+                        <option value="0">Selecione...</option>
+                        @foreach (var mat in materiais)
+                        {
+                            <option value="@mat.Id">@mat.Nome (@mat.SaldoGramas.ToString("N2") g disponíveis)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => orcamento.MaterialId)" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label text-white">Status do Orçamento</label>
+                    <InputSelect @bind-Value="orcamento.Status" class="form-select cyber-input fw-bold" style="background-color: var(--secondary-bg);">
+                        <option value="@StatusOrcamento.Pendente" style="color: #ffc107;">🟡 PENDENTE</option>
+                        <option value="@StatusOrcamento.EmImpressao" style="color: #0dcaf0;">🔵 IMPRIMINDO</option>
+                        <option value="@StatusOrcamento.Concluido" style="color: #0d6efd;">🟢 CONCLUÍDO</option>
+                        <option value="@StatusOrcamento.Falha" style="color: #dc3545;">🔴 FALHA</option>
+                    </InputSelect>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label text-white">Peso Estimado</label>
+                    <div class="input-group">
+                        <input @ref="pesoInputRef"
+                               type="text"
+                               class="form-control cyber-input custom-placeholder"
+                               placeholder="0,00"
+                               oninput="window.masks.weightUnit(this)"
+                               @onchange="AtualizarPreco"
+                               maxlength="10" />
+                        <span class="input-group-text bg-dark text-secondary border-secondary">g</span>
+                    </div>
+                    <ValidationMessage For="@(() => orcamento.PesoGramas)" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label text-white">Tempo (h)</label>
+                    <input @ref="tempoInputRef"
+                           type="text"
+                           class="form-control cyber-input custom-placeholder"
+                           placeholder="00:00"
+                           oninput="window.masks.time(event)"
+                           @onchange="AtualizarPreco"
+                           maxlength="5" />
+                    <ValidationMessage For="@(() => orcamento.TempoHoras)" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label text-white">Mão de Obra (h)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-secondary border-secondary">R$</span>
+                        <input @ref="maoDeObraInputRef"
+                               type="text"
+                               class="form-control cyber-input custom-placeholder"
+                               placeholder="0,00"
+                               oninput="window.masks.money(this)"
+                               @onchange="AtualizarPreco"
+                               maxlength="10" />
+                    </div>
+                    <ValidationMessage For="@(() => orcamento.CustoMaoDeObraHora)" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label text-white">Margem de Lucro</label>
+                    <div class="input-group">
+                        <input @ref="margemInputRef"
+                               type="text"
+                               class="form-control cyber-input custom-placeholder"
+                               placeholder="100,00"
+                               oninput="window.masks.percentage(this)"
+                               @onchange="AtualizarPreco"
+                               maxlength="8" />
+                        <span class="input-group-text bg-dark text-secondary border-secondary">%</span>
+                    </div>
+                    <ValidationMessage For="@(() => orcamento.MargemLucroPercentual)" />
+                </div>
+
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="w-100 p-3 rounded text-center" style="background: rgba(0, 229, 255, 0.05); border: 1px dashed var(--neon-cyan);">
+                        <span class="text-secondary small d-block fw-bold tracking-wide">PREÇO ESTIMADO</span>
+                        <h2 class="neon-text mb-0 fw-bold mt-1">@CalcularPrecoVenda().ToString("C2")</h2>
+                    </div>
+                </div>
+
+                <div class="col-md-8 d-flex align-items-center">
+                    <button type="submit" class="btn btn-neon w-100 py-3">
+                        <i class="bi bi-cpu me-2"></i>@(Id.HasValue ? "ATUALIZAR ORÇAMENTO" : "SALVAR")
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary py-3 ms-2" @onclick='() => Nav.NavigateTo("/producao")'>
+                        VOLTAR
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+<style>
+    .custom-placeholder::placeholder { 
+        color: #aaaaaa !important; 
+        opacity: 1 !important; 
+    }
+    .cyber-card-no-hover:hover {
+        border-color: #2a2a35 !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    
+    /* UX de Cursors */
+    select.form-select, .form-select {
+        cursor: pointer !important;
+    }
+    input.form-control, .cyber-input {
+        cursor: text !important;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private Orcamento orcamento = new();
+    private List<Material> materiais = new();
+    private List<Maquina> maquinas = new();
+    private string? alertaEstoque;
+    private ElementReference telefoneInputRef;
+    private ElementReference pesoInputRef;
+    private ElementReference tempoInputRef;
+    private ElementReference maoDeObraInputRef;
+    private ElementReference margemInputRef;
+
+    private async Task AtualizarPreco()
+    {
+        await LerInputsFormatoJs();
+        StateHasChanged();
+    }
+
+    private async Task LerInputsFormatoJs()
+    {
+        orcamento.TelefoneCliente = await JS.InvokeAsync<string>("window.masks.getInputValue", telefoneInputRef);
+        
+        var pesoStr = await JS.InvokeAsync<string>("window.masks.getInputValue", pesoInputRef);
+        if (!string.IsNullOrEmpty(pesoStr)) {
+            var clean = pesoStr.Replace(".", "").Replace(",", ".").Trim();
+            if (double.TryParse(clean, System.Globalization.CultureInfo.InvariantCulture, out double peso))
+                orcamento.PesoGramas = peso;
+        }
+
+        var tempoStr = await JS.InvokeAsync<string>("window.masks.getInputValue", tempoInputRef);
+        if (!string.IsNullOrEmpty(tempoStr)) {
+            if (tempoStr.Contains(":")) {
+                var parts = tempoStr.Split(':');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int h) && int.TryParse(parts[1], out int m)) {
+                    orcamento.TempoHoras = h + (m >= 30 ? 1 : 0);
+                }
+            } else if (int.TryParse(tempoStr, out int t)) {
+                orcamento.TempoHoras = t;
+            }
+        }
+
+        var maoStr = await JS.InvokeAsync<string>("window.masks.getInputValue", maoDeObraInputRef);
+        if (!string.IsNullOrEmpty(maoStr)) {
+            var clean = maoStr.Replace(".", "").Replace(",", ".");
+            if (decimal.TryParse(clean, System.Globalization.CultureInfo.InvariantCulture, out decimal mao))
+                orcamento.CustoMaoDeObraHora = mao;
+        }
+
+        var margemStr = await JS.InvokeAsync<string>("window.masks.getInputValue", margemInputRef);
+        if (!string.IsNullOrEmpty(margemStr)) {
+            var clean = margemStr.Replace(".", "").Replace(",", ".").Trim();
+            if (decimal.TryParse(clean, System.Globalization.CultureInfo.InvariantCulture, out decimal margem))
+                orcamento.MargemLucroPercentual = margem;
+        }
+    }
+
+    private void OnMaquinaChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int maqId) && maqId > 0)
+        {
+            orcamento.MaquinaId = maqId;
+            var maq = maquinas.FirstOrDefault(m => m.Id == maqId);
+            if (maq != null)
+            {
+                orcamento.ConsumoMaquinaW = maq.ConsumoWatts;
+                orcamento.CustoKwh = maq.CustoKwh;
+                
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            orcamento.MaquinaId = null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        materiais = await MaterialRepo.GetAllAsync();
+        maquinas = await MaquinaRepo.GetAllAsync();
+        
+        if (Id.HasValue)
+        {
+            var todos = await OrcamentoRepo.GetAllAsync();
+            var target = todos.FirstOrDefault(o => o.Id == Id.Value);
+            if (target != null)
+            {
+                if (target.Status == StatusOrcamento.Concluido)
+                {
+                    Nav.NavigateTo("/producao");
+                    return;
+                }
+                orcamento = target;
+            }
+            else
+            {
+                Nav.NavigateTo("/producao");
+            }
+        }
+    }
+
+    // Preenche os inputs via JS após o componente renderizar (modo edição)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Id.HasValue)
+        {
+            if (!string.IsNullOrEmpty(orcamento.TelefoneCliente))
+                await JS.InvokeVoidAsync("window.masks.setInputValue", telefoneInputRef, orcamento.TelefoneCliente);
+
+            await JS.InvokeVoidAsync("window.masks.setInputValue", pesoInputRef, orcamento.PesoGramas.ToString("N2"));
+            
+            string tempoFormatado = orcamento.TempoHoras.ToString("D2") + ":00";
+            await JS.InvokeVoidAsync("window.masks.setInputValue", tempoInputRef, tempoFormatado);
+
+            if (orcamento.CustoMaoDeObraHora > 0)
+                await JS.InvokeVoidAsync("window.masks.setInputValue", maoDeObraInputRef, orcamento.CustoMaoDeObraHora.ToString("N2"));
+            
+            await JS.InvokeVoidAsync("window.masks.setInputValue", margemInputRef, orcamento.MargemLucroPercentual.ToString("N2"));
+        }
+    }
+
+    private decimal CalcularPrecoVenda()
+    {
+        var material = materiais.FirstOrDefault(m => m.Id == orcamento.MaterialId);
+        if (material == null || orcamento.PesoGramas <= 0) return 0;
+        
+        decimal custoMaterial = (decimal)orcamento.PesoGramas * material.PrecoPorGrama;
+        decimal custoEnergia = (orcamento.ConsumoMaquinaW / 1000m) * orcamento.TempoHoras * orcamento.CustoKwh;
+        decimal custoMaoDeObra = orcamento.TempoHoras * orcamento.CustoMaoDeObraHora;
+        return (custoMaterial + custoEnergia + custoMaoDeObra) * (1 + (orcamento.MargemLucroPercentual / 100));
+    }
+
+    private async Task HandleSubmit()
+    {
+        // Lê os inputs formatados diretamente do DOM antes de salvar
+        await LerInputsFormatoJs();
+
+        alertaEstoque = null;
+        var material = materiais.FirstOrDefault(m => m.Id == orcamento.MaterialId);
+
+        if (material != null && (decimal)orcamento.PesoGramas > material.SaldoGramas)
+        {
+            alertaEstoque = "Erro: Material insuficiente para gerar este orçamento. O saldo atual é de " + material.SaldoGramas.ToString("N2") + "g.";
+            return;
+        }
+
+        if (orcamento.Status == StatusOrcamento.Concluido)
+        {
+            bool confirmado = await JS.InvokeAsync<bool>("confirm", "Você quer realmente Concluir aquela peça? Após isso a edição não ficará mais disponível.");
+            if (!confirmado) return;
+        }
+
+        if (Id.HasValue)
+        {
+            await OrcamentoRepo.UpdateAsync(orcamento);
+        }
+        else
+        {
+            orcamento.DataCriacao = DateTime.Now;
+            await OrcamentoRepo.AddAsync(orcamento);
+        }
+        
+        Nav.NavigateTo("/producao");
+    }
+}

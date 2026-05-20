@@ -1,0 +1,46 @@
+@page "/login"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>LucroImpresso | Login</PageTitle>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/dashboard", forceLoad: true);
+        } 
+    }
+}
+
+<div class="login-container">
+    <div class="cyber-login-card">
+        <div class="text-center mb-4">
+            <span class="pi-logo neon-text fs-1 mb-2 d-block">π</span>
+            <h3 class="text-white fw-bold">ACESSO AO <span class="neon-text">SISTEMA</span></h3>
+        </div>
+
+        <form action="/auth/login" method="post">
+            <AntiforgeryToken />
+            
+            <div class="mb-4 position-relative">
+                <label class="form-label text-secondary small fw-bold tracking-wide">USUÁRIO</label>
+                <input type="text" name="usuario" class="form-control cyber-input" placeholder="Digite seu usuário" required />
+            </div>
+
+            <div class="mb-4 position-relative">
+                <label class="form-label text-secondary small fw-bold tracking-wide">SENHA</label>
+                <input type="password" name="senha" class="form-control cyber-input" placeholder="••••••••" required />
+            </div>
+
+            <button type="submit" class="btn btn-neon w-100 mt-2 py-2">
+                INICIAR SESSÃO
+            </button>
+        </form>
+    </div>
+</div>

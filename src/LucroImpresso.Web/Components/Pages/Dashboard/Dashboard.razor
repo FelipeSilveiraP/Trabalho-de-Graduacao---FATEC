@@ -1,0 +1,194 @@
+@page "/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using LucroImpresso.Web.Models
+@using LucroImpresso.Web.Interfaces
+@inject IOrcamentoRepository OrcamentoRepo
+@inject IMaterialRepository MaterialRepo
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<PageTitle>LucroImpresso | Dashboard</PageTitle>
+
+<div class="dashboard-container">
+    <header class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="text-white fw-bold mb-0">VISÃO <span class="neon-text">GERAL</span></h2>
+            <p class="text-secondary fs-6 mt-1">Bem-vindo à central de comando da sua manufatura.</p>
+        </div>
+        <a href="orcamento/novo" class="btn btn-neon py-2 px-4" data-enhance-nav="false" style="text-decoration: none;">
+            + NOVO ORÇAMENTO
+        </a>
+    </header>
+
+    <!-- FINANÇAS -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="cyber-card p-4 h-100 cyber-card-no-hover" style="border-top: 3px solid #20c997;">
+                <h6 class="text-secondary tracking-wide mb-3 fw-bold">RECEITAS (VENDAS CONCLUÍDAS)</h6>
+                <h3 class="fw-bold mb-1" style="color: #20c997;">
+                    R$ @receitasTotais.ToString("N2")
+                </h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cyber-card p-4 h-100 cyber-card-no-hover" style="border-top: 3px solid #ff4757;">
+                <h6 class="text-secondary tracking-wide mb-3 fw-bold">DESPESAS (MATERIAIS + ENERGIA)</h6>
+                <h3 class="fw-bold mb-1" style="color: #ff4757;">
+                    R$ @despesasTotais.ToString("N2")
+                </h3>
+                <small class="text-secondary d-block mt-2">
+                    Preço Materiais: R$ @despesaMaterial.ToString("N2") | kWh's: R$ @despesaEnergia.ToString("N2") 
+                </small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cyber-card p-4 h-100 cyber-card-no-hover" style="border-top: 3px solid var(--neon-cyan);">
+                <h6 class="text-secondary tracking-wide mb-3 fw-bold">CAIXA ATUAL (LÍQUIDO)</h6>
+                <h3 class="neon-text fw-bold mb-1">
+                    R$ @caixaAtual.ToString("N2")
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÉTRICAS DE PRODUÇÃO -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <!-- No hover, no pointer -->
+            <div class="cyber-card p-4 h-100 cyber-card-no-hover">
+                <h6 class="text-secondary tracking-wide mb-3 fw-bold">PEÇAS ENTREGUES</h6>
+                <h3 class="text-white fw-bold mb-1">@totalPecas</h3>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <a href="/producao" data-enhance-nav="false" class="cyber-card p-4 h-100 transition-hover d-block text-decoration-none" style="cursor: pointer;">
+                <h6 class="text-secondary tracking-wide mb-3 fw-bold">ORÇAMENTOS TOTAIS (SISTEMA)</h6>
+                <h3 class="text-white fw-bold mb-1">@quantidadeOrcamentos</h3>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <a href="/material" data-enhance-nav="false" class="cyber-card p-4 border-warning-cyber h-100 transition-hover d-block text-decoration-none" style="cursor: pointer;">
+                <h5 class="mb-4 fw-bold" style="color: #ffc107;">⚠ ALERTAS DE ESTOQUE</h5>
+                
+                @if (estoqueAlerta.Any())
+                {
+                    @foreach (var mat in estoqueAlerta)
+                    {
+                        var percentual = mat.PesoRoloGramas > 0 ? (mat.SaldoGramas / mat.PesoRoloGramas) : 0;
+                        var corTexto = percentual <= 0.2m ? "#dc3545" : "#ffc107";
+                        <div class="alert-item mb-3">
+                            <strong class="text-white d-block mb-1">@mat.Nome</strong>
+                            <span class="text-secondary small d-block">
+                                Restam apenas <span style="color: @corTexto; font-weight: bold;">@mat.SaldoGramas.ToString("F0")g</span> (@((percentual * 100).ToString("F1"))%).
+                            </span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-secondary italic">Nenhum alerta crítico no momento.</p>
+                }
+            </a>
+        </div>
+
+        <div class="col-lg-8">
+            <a href="/producao" data-enhance-nav="false" class="cyber-card p-4 h-100 transition-hover d-block text-decoration-none" style="cursor: pointer;">
+                <h5 class="text-white mb-4 fw-bold">ÚLTIMOS ORÇAMENTOS</h5>
+                <div class="table-responsive">
+                    <table class="table cyber-table text-light mb-0">
+                        <thead>
+                            <tr>
+                                <th>CLIENTE / PEÇA</th>
+                                <th>VALOR VENDA</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (ultimosOrcamentos == null || !ultimosOrcamentos.Any())
+                            {
+                                <tr><td colspan="3" class="text-center text-secondary">Nenhum orçamento real cadastrado.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var orc in ultimosOrcamentos)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong class="d-block text-white">@orc.NomeCliente</strong>
+                                            <small class="text-secondary">@orc.NomeProjeto</small>
+                                        </td>
+                                        <td><strong class="neon-text">R$ @orc.CustoFinal.ToString("F2")</strong></td>
+                                        <td>
+                                            <span class="badge @GetStatusClass(orc.Status) text-dark fw-bold px-2 py-1">
+                                                @(orc.Status == StatusOrcamento.EmImpressao ? "IMPRIMINDO" : orc.Status.ToString().ToUpper())
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Remover hover style of specific card */
+    .cyber-card-no-hover:hover {
+        border-color: #2a2a35 !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+</style>
+
+@code {
+    private decimal receitasTotais;
+    private decimal despesaMaterial;
+    private decimal despesaEnergia;
+    private decimal despesasTotais;
+    private decimal caixaAtual;
+    
+    private int totalPecas;
+    private int quantidadeOrcamentos;
+    private List<Orcamento> ultimosOrcamentos = new();
+    private List<Material> estoqueAlerta = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        receitasTotais = await OrcamentoRepo.GetTotalFaturamentoAsync();
+        despesaMaterial = await MaterialRepo.GetTotalDespesasMateriaisAsync();
+        despesaEnergia = await OrcamentoRepo.GetTotalDespesasEnergiaAsync();
+        
+        despesasTotais = despesaMaterial + despesaEnergia;
+        caixaAtual = receitasTotais - despesasTotais;
+
+        totalPecas = await OrcamentoRepo.GetTotalPecasAsync();
+        var todosOrcamentos = await OrcamentoRepo.GetAllAsync();
+        quantidadeOrcamentos = todosOrcamentos.Count;
+        
+        ultimosOrcamentos = await OrcamentoRepo.GetUltimosOrcamentosAsync(3); // Apenas 3
+        
+        var estoque = await MaterialRepo.GetAllAsync();
+        estoqueAlerta = estoque.Where(m => m.SaldoGramas <= (m.PesoRoloGramas * 0.50m))
+                               .OrderBy(m => m.SaldoGramas / (m.PesoRoloGramas > 0 ? m.PesoRoloGramas : 1))
+                               .ToList();
+    }
+
+    private string GetStatusClass(StatusOrcamento status)
+    {
+        return status switch
+        {
+            StatusOrcamento.Pendente => "bg-warning",
+            StatusOrcamento.EmImpressao => "bg-info",
+            StatusOrcamento.Concluido => "bg-primary text-white",
+            StatusOrcamento.Falha => "bg-danger text-white",
+            _ => "bg-secondary"
+        };
+    }
+}

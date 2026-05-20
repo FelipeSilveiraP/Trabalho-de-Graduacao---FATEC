@@ -1,0 +1,205 @@
+@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle> LucroImpresso</PageTitle>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/dashboard", forceLoad: true);
+        }
+    }
+}
+
+<section class="hero-section">
+    <div class="hero-text-box text-center" style="z-index: 2;">
+        <h1 class="display-3 fw-bold text-white mb-3" style="letter-spacing: 2px;" tabindex="-1">
+            PRECIFICAÇÃO SEM <br><span class="neon-text">CHUTÔMETRO</span>
+        </h1>
+        <p class="fs-4 mb-5 text-light" style="max-width: 800px; margin: 0 auto;">
+            O sistema definitivo para makers da manufatura aditiva. 
+            Controle o estoque de filamentos e calcule custos exatos de impressão 3D.
+        </p>
+        <div class="d-flex justify-content-center">
+            <a class="btn btn-neon" href="login" data-enhance-nav="false" style="padding: 1rem 2rem; font-size: 1.1rem; text-decoration: none;">
+                COMEÇAR AGORA
+            </a>
+        </div>
+               
+        
+    </div>
+    
+    <div class="cyber-grid-white"></div>
+
+    <a href="#como-funciona" class="scroll-indicator" aria-label="Rolar para baixo">
+        <div class="chevron"></div>
+        <div class="chevron"></div>
+        <div class="chevron"></div>
+    </a>
+</section>
+
+<section id="como-funciona" class="section-full section-divider" style="background-color: var(--secondary-bg);">
+    <div class="container">
+        <header class="text-center" style="margin-bottom: 5rem;">
+            <h2 class="fw-bold text-white display-5">COMO A <span class="neon-text">MÁQUINA</span> FUNCIONA</h2>
+            <p class="fs-5 text-secondary">Engenharia de software aplicada à sua produção 3D.</p>
+        </header>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <article class="cyber-card p-5">
+                    <h3 class="neon-text mb-4">01. INSUMOS</h3>
+                    <p class="fs-5 text-light">Cadastre filamentos e resinas. O sistema calcula automaticamente o valor exato pago por grama (RN001), criando a base matemática do seu lucro.</p>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="cyber-card p-5">
+                    <h3 class="neon-text mb-4">02. ORÇAMENTOS</h3>
+                    <p class="fs-5 text-light">Insira dados do fatiador (peso/tempo). O sistema cruza com seu estoque e alerta sobre falta de material antes mesmo de fechar a venda (RN002).</p>
+                </article>
+            </div>
+            <div class="col-md-4">
+                <article class="cyber-card p-5">
+                    <h3 class="neon-text mb-4">03. PRODUÇÃO</h3>
+                    <p class="fs-5 text-light">A baixa no estoque só ocorre quando a venda é concluída ou se houver falha de impressão (RN003), evitando o temido "estoque fantasma".</p>
+                </article>
+            </div>
+        </div>
+    </div>
+
+    <a href="#beneficios" class="scroll-indicator" aria-label="Rolar para baixo">
+        <div class="chevron"></div>
+        <div class="chevron"></div>
+        <div class="chevron"></div>
+    </a>
+</section>
+
+<section id="beneficios" class="section-full section-divider" style="background-color: #161625;min-height: 75vh !important;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h2 class="display-5 fw-bold text-white mb-4">PARE DE PERDER <span class="neon-text">DINHEIRO</span></h2>
+                <p class="text-light fs-4 mb-4">A maioria dos makers precifica peças baseando-se no "achismo" ou multiplicando o custo do material por 3. Isso ignora o desgaste da máquina, energia e o tempo real.</p>
+                <ul class="list-unstyled text-light fs-5">
+                    <li class="mb-3"><span class="neon-text me-3">■</span> Precisão cirúrgica no custo da grama gasta.</li>
+                    <li class="mb-3"><span class="neon-text me-3">■</span> Alertas de estoque para não atrasar entregas.</li>
+                    <li class="mb-3"><span class="neon-text me-3">■</span> Rastreio de prejuízos por falhas de impressão.</li>
+                </ul>
+            </div>
+            <div class="col-lg-6 text-center mt-5 mt-lg-0">
+                <span class="neon-text" style="font-size: 15rem; font-family: 'Times New Roman', serif; font-style: italic; line-height: 1;">π</span>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+<footer id="contato" class="footer-cyber section-divider w-100 py-3 mt-auto">
+    <div class="container text-center">
+        <h4 class="text-white mb-2" style="letter-spacing: 2px;">FALE COM O <span class="neon-text">DESENVOLVEDOR</span></h4>
+        <p class="text-secondary mb-3 fs-6">Felipe Silveira Pessoa | Análise e Desenvolvimento de Sistemas (FATEC)</p>
+        
+        <div class="d-flex justify-content-center gap-4 mb-2">
+            <a href="mailto:felipe.silveirap47@gmail.com" target="_blank" class="text-light text-decoration-none cyber-link">📧 Email</a>
+            <a href="https://www.linkedin.com/in/felipe-silveira-pessoa-123681204/overlay/contact-info" target="_blank" class="text-light text-decoration-none cyber-link">💼 LinkedIn</a>
+            <a href="https://github.com/FelipeSilveiraP" target="_blank" class="text-light text-decoration-none cyber-link">🐙 GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<style>
+    .hero-section {
+        background-color: #ffffff; 
+        /* MATEMÁTICA: 100% da altura da tela - 76px do menu fixo */
+        min-height: calc(100vh - 76px); 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-text-box {
+        background: radial-gradient(circle, rgba(8,8,11,0.95) 20%, rgba(8,8,11,0.8) 50%, rgba(8,8,11,0) 80%);
+        padding: 5rem 2rem;
+        border-radius: 50%;
+        width: 100%;
+        max-width: 1200px;
+        position: relative; /* ADICIONE ESTA LINHA PARA O Z-INDEX FUNCIONAR */
+    z-index: 2;
+    }
+
+    .cyber-grid-white {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-image: 
+            linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+        background-size: 40px 40px;
+        z-index: 1;
+    }
+
+    .section-full {
+        /* MATEMÁTICA: 100% da altura da tela - 76px do menu fixo */
+        min-height: calc(100vh - 76px);
+        display: flex;
+        align-items: center;
+        padding: 4rem 0;
+        position: relative;
+    }
+
+    .section-divider {
+        border-top: 2px solid var(--neon-cyan);
+        box-shadow: 0 -4px 15px rgba(0, 229, 255, 0.15);
+    }
+
+    .footer-cyber {
+        background-color: #08080b;
+    }
+
+    .cyber-link { transition: color 0.3s; }
+    .cyber-link:hover { color: var(--neon-cyan) !important; }
+
+    /* =========================================
+       INDICADORES DE SCROLL
+       ========================================= */
+    .scroll-indicator {
+        position: absolute;
+        bottom: 2rem; 
+        left: 50%;
+        transform: translateX(-50%); 
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 10;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .chevron {
+        width: 25px;
+        height: 25px;
+        border-right: 3px solid var(--neon-cyan);
+        border-bottom: 3px solid var(--neon-cyan);
+        transform: rotate(45deg); 
+        animation: scroll-bounce 2s infinite; 
+        margin-top: -12px; 
+    }
+
+    .chevron:nth-child(1) { animation-delay: 0s; opacity: 0.2; }
+    .chevron:nth-child(2) { animation-delay: 0.2s; opacity: 0.5; }
+    .chevron:nth-child(3) { animation-delay: 0.4s; opacity: 1; }
+
+    @@keyframes scroll-bounce {
+        0% { transform: rotate(45deg) translate(0, 0); opacity: 0; }
+        50% { opacity: 1; }
+        100% { transform: rotate(45deg) translate(20px, 20px); opacity: 0; }
+    }
+</style>

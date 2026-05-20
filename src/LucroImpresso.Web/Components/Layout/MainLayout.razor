@@ -1,0 +1,19 @@
+@inherits LayoutComponentBase
+
+<div class="page-wrapper" id="topo-do-site">
+    
+    <header class="header-cyber">
+        <NavMenu />
+        <div id="neon-scroll-progress" class="scroll-progress-bar"></div>
+    </header>
+
+    <main class="w-100 main-content-padded">
+        <article class="content px-0 pt-0 w-100">
+            @Body
+        </article>
+    </main>
+
+    <button id="btn-back-to-top" onclick="scrollAoTopo(event)" class="back-to-top" aria-label="Voltar ao topo">
+        <div class="chevron-up"></div>
+    </button>
+</div>

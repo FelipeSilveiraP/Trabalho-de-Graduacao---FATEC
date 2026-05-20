@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["LucroImpresso.Web.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 80 85 100'><rect x='0' y='80' width='85' height='100' fill='%2308080b' /><text y='.9em' font-size='185' fill='%2300e5ff' font-family='Times New Roman, serif' font-style='italic'>π</text></svg>" />
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="js/masks.js"></script>
+    <script src="_framework/blazor.web.js"></script>
+    
+    <script>
+        window.addEventListener('scroll', function(e) {
+            // Pegando a posição real do scroll na tela
+            var scrollPosition = window.scrollY || document.documentElement.scrollTop || e.target.scrollTop || 0;
+            
+            // A LÓGICA DO BOTÃO "VOLTAR AO TOPO"
+            var btn = document.getElementById('btn-back-to-top');
+            if (btn) {
+                var alturaGatilho = window.innerHeight / 2;
+                if (scrollPosition > alturaGatilho) {
+                    btn.classList.add('visible');
+                } else {
+                    btn.classList.remove('visible');
+                }
+            }
+
+            // A LÓGICA DA BARRA DE PROGRESSO NEON HORIZONTAL
+            var progBar = document.getElementById('neon-scroll-progress');
+            if (progBar) {
+                var alturaTotalDaPagina = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                
+                if (alturaTotalDaPagina > 0) {
+                    var porcentagemLida = (scrollPosition / alturaTotalDaPagina) * 100;
+                    progBar.style.width = porcentagemLida + '%';
+                } else {
+                    progBar.style.width = '0%';
+                }
+            }
+        }, true);
+
+        // A Função de subida do Botão Topo
+        function scrollAoTopo(e) {
+            if (e) e.preventDefault(); // Manda o navegador ignorar o link padrão
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            var wrappers = document.querySelectorAll('.page-wrapper, main, .page');
+            wrappers.forEach(function(el) {
+                el.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        // LÓGICA DE CONFIRMAÇÃO DE SAÍDA (LOGOUT)
+        function confirmarSaida(e) {
+            e.preventDefault(); // Evita que a página pisque
+            
+            // O confirm() nativo do navegador
+            var certeza = confirm("Você tem certeza que quer sair?");
+            
+            if (certeza) {
+                // Se apertar OK, joga o usuário de volta para a Home Page
+                window.location.href = "/auth/logout"; 
+            }
+        }
+        // FECHA O MENU MOBILE ao clicar em qualquer link
+        function closeMenuMobile() {
+            var menu = document.getElementById('menuCyber');
+            if (menu && menu.classList.contains('show')) {
+                var bsCollapse = bootstrap.Collapse.getInstance(menu);
+                if (bsCollapse) {
+                    bsCollapse.hide();
+                }
+            }
+        }
+        
+    </script>
+</body>
+</html>
